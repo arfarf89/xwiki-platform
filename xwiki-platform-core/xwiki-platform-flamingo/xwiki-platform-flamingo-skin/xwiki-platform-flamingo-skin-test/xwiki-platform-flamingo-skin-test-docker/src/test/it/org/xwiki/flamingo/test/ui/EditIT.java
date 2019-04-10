@@ -19,15 +19,19 @@
  */
 package org.xwiki.flamingo.test.ui;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.xwiki.test.docker.junit5.TestConfiguration;
+import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.SpaceReference;
 import org.xwiki.test.docker.junit5.TestReference;
 import org.xwiki.test.docker.junit5.UITest;
 import org.xwiki.test.ui.TestUtils;
+import org.xwiki.test.ui.po.CreatePagePage;
 import org.xwiki.test.ui.po.ViewPage;
 import org.xwiki.test.ui.po.editor.WikiEditPage;
 
@@ -195,7 +199,7 @@ public class EditIT
      */
     @Test
     @Order(6)
-    public void saveAndFormManipulation(TestUtils setup, TestReference reference, TestConfiguration testConfiguration)
+    public void saveAndFormManipulation(TestUtils setup, TestReference reference)
     {
         setup.deletePage(reference);
         ViewPage viewPage = setup.gotoPage(reference);
@@ -229,5 +233,31 @@ public class EditIT
 
         // Ensure the reload lead to the right page
         assertEquals(setup.getURL(reference, "view", ""), setup.getDriver().getCurrentUrl() + "WebHome");
+    }
+
+    /**
+     * Ensure that document can be created with very long titles with more than 255 characters.
+     */
+    @Test
+    @Order(7)
+    public void createDocumentLongTitle(TestUtils setup, TestReference reference)
+    {
+        String name1 = "Company Presentation Events";
+        String name2 = "Presentation from 10 december 2015 at the Fourth edition of the International Conference for "
+            + "the Environmental Responsibility (ICER 2015).";
+        String name3 = "Intervention from the President of the Interdisciplinary Commission for Responsible Development"
+            + " of Alternative Fuels (ICRDA)";
+
+        SpaceReference spaceReference = new SpaceReference(reference.getWikiReference().getName(),
+            Arrays.asList(name1, name2));
+        DocumentReference documentReference = new DocumentReference(name3, spaceReference);
+        setup.gotoPage(documentReference, "create");
+        CreatePagePage createPagePage = new CreatePagePage();
+        String currentUrl = setup.getDriver().getCurrentUrl();
+        createPagePage.clickCreate();
+
+        // Ensure that we get an error message for path too long and that we remain on the same URL.
+        createPagePage.waitForErrorMessage();
+        assertEquals(currentUrl, setup.getDriver().getCurrentUrl());
     }
 }
